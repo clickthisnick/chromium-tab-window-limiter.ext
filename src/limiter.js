@@ -5,6 +5,10 @@ const maxTabsCount = 10;
 const maxWindowsCount = 1;
 const disableIncognitoWindows = true;
 
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 function updateTabsCount(tab) {
     chrome.tabs.query({
         windowType: 'normal',
@@ -12,10 +16,11 @@ function updateTabsCount(tab) {
     }, function (tabs) {
         tabsCount = tabs.length;
         document.getElementById('tabs').innerText = tabsCount
+        updateWindowsCount()
     });
 }
 
-function updateWindowsCount(window) {
+function updateWindowsCount() {
     chrome.windows.getAll({
 
     }, function (windows) {
@@ -39,6 +44,7 @@ function createWindow(window) {
 
         if (isAboveThreshold(dateString)) {
             chrome.windows.remove(window.id);
+            updateWindowsCount()
         }
     }
 }
@@ -51,6 +57,7 @@ function createTab(tab) {
 
         if (isAboveThreshold(dateString)) {
             chrome.tabs.remove(tab.id);
+            updateWindowsCount()
         }
     }
 }

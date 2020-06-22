@@ -11,9 +11,6 @@ function getMillisecondTime(pastMilliseconds = 0) {
 }
 
 function isAboveThreshold(millisecondString) {
-    res = getMillisecondTime() - parseInt(millisecondString) > millisecondsLimit
-    localStorage.setItem("testa", res)
-
     return getMillisecondTime() - parseInt(millisecondString) > millisecondsLimit
 }
 
