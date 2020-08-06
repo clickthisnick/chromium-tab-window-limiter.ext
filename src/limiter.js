@@ -26,6 +26,9 @@ function updateWindowsCount() {
     }, function (windows) {
         windowsCount = windows.length;
         document.getElementById('windows').innerText = windowsCount
+        chrome.browserAction.setBadgeBackgroundColor({
+            color: '#808080'
+        })
         chrome.browserAction.setBadgeText({"text": `${windowsCount}`})
     });
 }
