@@ -2,7 +2,7 @@
 
 ## To Install
 
-Chrome -> More Tools -> Extensions -> Load Unpacked -> Load the `src` directory of this repo.
+Chrome -> Settings -> Extensions -> Toggle Developer Mode -> Load Unpacked -> Load the `src` directory of this repo.
 
 ## Make better
 
