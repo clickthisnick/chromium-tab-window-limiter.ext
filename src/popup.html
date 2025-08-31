@@ -1,17 +1,32 @@
+<!DOCTYPE html>
 <html>
-    <head>
-      <title>Window Tab Limiter</title>
-    </head>
-    <body>
-      <div id="active"></div>
-      <div>
-        Tabs: <span id="tabs"></span> 
-      </div>
-      <div>
-        Windows: <span id="windows"></span> 
-      </div>
-    </body>
-    <script src="toggle.js"></script>
-    <script src="limiter.js"></script>
-    </body>
-  </html>
+<head>
+  <meta charset="UTF-8">
+  <title>Window Tab Limiter</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      min-width: 200px;
+      padding: 10px;
+    }
+    #active {
+      margin-bottom: 10px;
+    }
+    input[type="button"] {
+      padding: 5px 10px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div id="active"></div>
+  <div>
+    Tabs: <span id="tabs">0</span>
+  </div>
+  <div>
+    Windows: <span id="windows">0</span>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
