@@ -1,15 +1,17 @@
 {
   "name": "TabWindowLimiter",
   "description": "Limit Amount Of Tabs/Windows",
-  "background": {
-    "page": "popup.html"
-  },
+  "version": "0.0.3",
+  "manifest_version": 3,
   "permissions": [
-    "tabs"
+    "tabs",
+    "storage"
   ],
-  "version": "0.0.1",
-  "manifest_version": 2,
-  "browser_action": {
-    "default_popup": "popup.html"
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "TabWindowLimiter"
   }
 }
