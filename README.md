@@ -50,10 +50,9 @@ Requires Node.js 22 or newer. No packages need to be installed.
 ```bash
 npm test
 npm run lint
-npm run build
 ```
 
-GitHub Actions runs those three commands on push and pull request.
+GitHub Actions runs those commands on push and pull request. `npm test` only runs `test/*.test.js`, so the Chrome stand-in in `test/mock-chrome.js` is not executed as a test.
 
 ## Make better
 

@@ -26,4 +26,4 @@ Chromium extension that caps normal browser windows and unpinned tabs. There is 
 
 - Load unpacked the `src` directory. There is no compile step. Reload the extension after edits.
 - Change `MAX_TABS`, `MAX_WINDOWS`, `PAUSE_MS`, or `DISABLE_INCOGNITO` in `src/shared.js`.
-- `npm test`, `npm run lint`, and `npm run build` need Node.js 22 and no installed packages.
+- `npm test` and `npm run lint` need Node.js 22 and no installed packages. There is no compile step and no `build` script.
