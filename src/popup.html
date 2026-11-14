@@ -1,32 +1,89 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Window Tab Limiter</title>
+  <title>Tab Window Limiter</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      min-width: 200px;
-      padding: 10px;
+      margin: 0;
+      font: 14px/1.4 Arial, sans-serif;
+      color: #111;
+      background: #fff;
     }
-    #active {
-      margin-bottom: 10px;
+    main {
+      width: 320px;
+      padding: 12px;
+      box-sizing: border-box;
     }
-    input[type="button"] {
-      padding: 5px 10px;
+    h1 {
+      margin: 0 0 8px;
+      font-size: 16px;
+    }
+    button {
+      width: 100%;
+      font: inherit;
+      color: #111;
+      background: #fff;
+      border: 1px solid #111;
+      border-radius: 4px;
+      padding: 8px 10px;
       cursor: pointer;
+    }
+    button:hover {
+      background: #f2f2f2;
+    }
+    button:focus-visible {
+      outline: 2px solid #111;
+      outline-offset: 2px;
+    }
+    button:disabled {
+      cursor: default;
+      opacity: 0.7;
+    }
+    #status,
+    #limits,
+    #preview-note,
+    #error {
+      margin: 8px 0 0;
+    }
+    #error {
+      color: #8a1f11;
+    }
+    .counts {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 4px 12px;
+      margin: 12px 0 0;
+    }
+    output {
+      font: inherit;
+      margin: 0;
     }
   </style>
 </head>
 <body>
-  <div id="active"></div>
-  <div>
-    Tabs: <span id="tabs">0</span>
-  </div>
-  <div>
-    Windows: <span id="windows">0</span>
-  </div>
-
-  <script src="popup.js"></script>
+  <main>
+    <h1>Tab Window Limiter</h1>
+    <button id="tabWindowLimiter" type="button" data-testid="limiter-toggle" aria-describedby="limits">
+      Loading limiter
+    </button>
+    <p id="status" role="status" aria-live="polite" data-testid="limiter-status">Loading limiter status.</p>
+    <div class="counts">
+      <label for="tabs">Unpinned tabs</label>
+      <output id="tabs" data-testid="tab-count">0</output>
+      <label for="normal-windows">Normal windows</label>
+      <output id="normal-windows" data-testid="normal-window-count">0</output>
+      <label for="windows">All windows</label>
+      <output id="windows" data-testid="window-count">0</output>
+    </div>
+    <p id="limits" data-testid="limits">
+      While the limiter is on, opening an unpinned tab past 10 closes that new tab, and opening another normal window closes that new window. Incognito windows close immediately. Pinned tabs, popups, and DevTools stay open. Pause lasts 10 seconds, then the limiter turns back on. The All windows count matches the toolbar badge.
+    </p>
+    <p id="error" role="alert" data-testid="limiter-error" hidden></p>
+    <p id="preview-note" data-testid="preview-note" hidden>
+      Open this page from the Tab Window Limiter toolbar button after loading the src folder as an unpacked extension.
+    </p>
+  </main>
+  <script type="module" src="popup.js"></script>
 </body>
 </html>

@@ -1,0 +1,29 @@
+# Tab Window Limiter
+
+Chromium extension that caps normal browser windows and unpinned tabs. There is no website. The interface is the toolbar popup in `src/popup.html`.
+
+## Behavior
+
+- Default cap: 10 unpinned tabs in normal windows, and 1 normal window.
+- Only the newly created tab or window is closed. Tabs already open, including ones opened during a pause, stay open.
+- Pinned tabs, popup windows, and DevTools are not counted and are not closed.
+- Incognito windows are closed as soon as they open. Chromium hides those windows from the extension until "Allow in Incognito" is enabled.
+- Pause lasts 10 seconds, then enforcement turns back on. Resume turns it back on immediately.
+- The toolbar badge is grey (`#808080`) and shows the count of every Chrome window.
+- Saved state is a number in `chrome.storage.local` under the key `tabWindowLimiter`: the epoch milliseconds when the limiter was last paused. Missing or invalid values mean the limiter is on. Do not replace that number with a boolean.
+
+## Popup controls
+
+- Pause or resume: button id `tabWindowLimiter`, data-testid `limiter-toggle`. Visible label is "Pause limiter" or "Resume limiter".
+- Status: id `status`, data-testid `limiter-status`, aria-live polite.
+- Unpinned tabs: id `tabs`, data-testid `tab-count`.
+- Normal windows: id `normal-windows`, data-testid `normal-window-count`.
+- All windows (same number as the badge): id `windows`, data-testid `window-count`.
+- What the limits mean: id `limits`.
+- Errors: id `error`, role alert.
+
+## Develop
+
+- Load unpacked the `src` directory. There is no compile step. Reload the extension after edits.
+- Change `MAX_TABS`, `MAX_WINDOWS`, `PAUSE_MS`, or `DISABLE_INCOGNITO` in `src/shared.js`.
+- `npm test`, `npm run lint`, and `npm run build` need Node.js 22 and no installed packages.

@@ -1,17 +1,19 @@
 {
   "name": "TabWindowLimiter",
-  "description": "Limit Amount Of Tabs/Windows",
-  "version": "0.0.3",
+  "description": "Close new tabs and windows that go past your limit, and block incognito windows.",
+  "version": "0.0.4",
   "manifest_version": 3,
+  "incognito": "spanning",
   "permissions": [
     "tabs",
     "storage"
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "type": "module"
   },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "TabWindowLimiter"
+    "default_title": "Tab Window Limiter"
   }
 }
