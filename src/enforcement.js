@@ -44,27 +44,13 @@ export async function ensureDefaultTimestamp(api = chrome, now = Date.now()) {
   return normalizeTimestamp(data[STORAGE_KEY]);
 }
 
-async function removeWindow(api, windowId) {
+async function removeIfPresent(collection, id) {
   try {
-    await api.windows.remove(windowId);
+    await collection.remove(id);
     return true;
   } catch (err) {
     try {
-      await api.windows.get(windowId);
-    } catch {
-      return false;
-    }
-    throw err;
-  }
-}
-
-async function removeTab(api, tabId) {
-  try {
-    await api.tabs.remove(tabId);
-    return true;
-  } catch (err) {
-    try {
-      await api.tabs.get(tabId);
+      await collection.get(id);
     } catch {
       return false;
     }
@@ -119,7 +105,7 @@ export async function handleTabCreated(tab, api = chrome, now = Date.now()) {
       shouldCloseIncognito(win) ||
       (DISABLE_INCOGNITO && tab.incognito && typeof incognitoWindowId === 'number')
     ) {
-      const removed = await removeWindow(api, incognitoWindowId);
+      const removed = await removeIfPresent(api.windows, incognitoWindowId);
       if (removed) {
         result.closedWindowId = incognitoWindowId;
       }
@@ -132,7 +118,7 @@ export async function handleTabCreated(tab, api = chrome, now = Date.now()) {
 
     const tabs = await api.tabs.query({});
     if (shouldCloseCreatedTab(tab, win, tabs, windows, result.active)) {
-      const removed = await removeTab(api, tab.id);
+      const removed = await removeIfPresent(api.tabs, tab.id);
       if (removed) {
         result.closedTabId = tab.id;
       }
@@ -147,7 +133,7 @@ export async function handleWindowCreated(win, api = chrome, now = Date.now()) {
   const result = emptyResult();
   try {
     if (shouldCloseIncognito(win)) {
-      const removed = await removeWindow(api, win.id);
+      const removed = await removeIfPresent(api.windows, win.id);
       if (removed) {
         result.closedWindowId = win.id;
       }
@@ -167,7 +153,7 @@ export async function handleWindowCreated(win, api = chrome, now = Date.now()) {
 
     const windows = await api.windows.getAll();
     if (shouldCloseCreatedWindow(win, windows, result.active)) {
-      const removed = await removeWindow(api, win.id);
+      const removed = await removeIfPresent(api.windows, win.id);
       if (removed) {
         result.closedWindowId = win.id;
       }
