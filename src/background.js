@@ -1,53 +1,58 @@
-const maxTabsCount = 10;
-const maxWindowsCount = 1;
-const disableIncognitoWindows = true;
-const extensionName = 'tabWindowLimiter';
-const millisecondsLimit = 10000;
+import {
+  ensureDefaultTimestamp,
+  handleTabCreated,
+  handleTabRemoved,
+  handleWindowCreated,
+  handleWindowRemoved,
+  updateBadge,
+} from './enforcement.js';
+import { createSerializer } from './shared.js';
 
-// Initialize storage
+const enqueue = createSerializer();
+
+function guard(task) {
+  enqueue(task).catch((err) => {
+    console.error('Tab window limiter failed', err);
+  });
+}
+
+function report(result) {
+  if (result?.error) {
+    console.error('Tab window limiter failed', result.error);
+  }
+}
+
 chrome.runtime.onInstalled.addListener(() => {
-  chrome.storage.local.get(extensionName, data => {
-    if (!data[extensionName]) {
-      chrome.storage.local.set({ [extensionName]: Date.now() - millisecondsLimit });
-    }
+  guard(async () => {
+    await ensureDefaultTimestamp();
+    await updateBadge();
   });
 });
 
-async function getCounts() {
-  const tabs = await chrome.tabs.query({ windowType: 'normal', pinned: false });
-  const windows = await chrome.windows.getAll({});
-  return { tabsCount: tabs.length, windowsCount: windows.length };
-}
+chrome.runtime.onStartup.addListener(() => {
+  guard(() => updateBadge());
+});
 
-function isAboveThreshold(timestamp) {
-  return Date.now() - timestamp > millisecondsLimit;
-}
+chrome.tabs.onCreated.addListener((tab) => {
+  guard(async () => {
+    report(await handleTabCreated(tab));
+  });
+});
 
-async function enforceLimits() {
-  const { tabsCount, windowsCount } = await getCounts();
-  const data = await chrome.storage.local.get(extensionName);
-  const active = isAboveThreshold(data[extensionName]);
+chrome.tabs.onRemoved.addListener(() => {
+  guard(async () => {
+    report(await handleTabRemoved());
+  });
+});
 
-  if (windowsCount > maxWindowsCount && active) {
-    const allWindows = await chrome.windows.getAll();
-    chrome.windows.remove(allWindows[allWindows.length - 1].id);
-  }
+chrome.windows.onCreated.addListener((win) => {
+  guard(async () => {
+    report(await handleWindowCreated(win));
+  });
+});
 
-  if (tabsCount > maxTabsCount && active) {
-    const allTabs = await chrome.tabs.query({});
-    chrome.tabs.remove(allTabs[allTabs.length - 1].id);
-  }
-
-  chrome.action.setBadgeBackgroundColor({ color: '#808080' });
-  chrome.action.setBadgeText({ text: `${windowsCount}` });
-}
-
-// Tab & Window Listeners
-chrome.tabs.onCreated.addListener(enforceLimits);
-chrome.tabs.onRemoved.addListener(enforceLimits);
-chrome.windows.onCreated.addListener(async (win) => {
-  if (disableIncognitoWindows && win.incognito) {
-    chrome.windows.remove(win.id);
-  }
-  enforceLimits();
+chrome.windows.onRemoved.addListener(() => {
+  guard(async () => {
+    report(await handleWindowRemoved());
+  });
 });
