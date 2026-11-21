@@ -3,8 +3,8 @@ import { test } from 'node:test';
 import {
   ensureDefaultTimestamp,
   handleTabCreated,
-  handleTabRemoved,
   handleWindowCreated,
+  refreshAfterRemoval,
 } from '../src/enforcement.js';
 import { BADGE_COLOR, PAUSE_MS, STORAGE_KEY } from '../src/shared.js';
 import { createMockChrome } from './mock-chrome.js';
@@ -36,7 +36,10 @@ test('closes only the new unpinned tab that crosses the limit', async () => {
 
   assert.equal(result.closedTabId, 11);
   assert.deepEqual(state.removedTabIds, [11]);
-  assert.deepEqual(state.tabs.map((item) => item.id), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+  assert.deepEqual(
+    state.tabs.map((item) => item.id),
+    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+  );
   assert.equal(result.badge, '1');
   assert.equal(state.badgeColor, BADGE_COLOR);
 });
@@ -48,7 +51,7 @@ test('leaves existing extra tabs alone when a different tab is closed', async ()
     timestamp: NOW - PAUSE_MS,
   });
 
-  const removed = await handleTabRemoved(api);
+  const removed = await refreshAfterRemoval(api);
   assert.equal(removed.closedTabId, null);
   assert.deepEqual(state.removedTabIds, []);
   assert.equal(state.tabs.length, 15);
@@ -99,8 +102,14 @@ test('closes a new normal window and not the window the user already had', async
 
   const result = await handleWindowCreated(created, api, NOW);
   assert.equal(result.closedWindowId, 2);
-  assert.deepEqual(state.windows.map((win) => win.id), [1]);
-  assert.deepEqual(state.tabs.map((item) => item.id), [1]);
+  assert.deepEqual(
+    state.windows.map((win) => win.id),
+    [1],
+  );
+  assert.deepEqual(
+    state.tabs.map((item) => item.id),
+    [1],
+  );
   assert.equal(result.badge, '1');
 });
 
@@ -129,7 +138,10 @@ test('closes a new incognito window even when the limiter is paused', async () =
 
   const fromWindow = await handleWindowCreated(incognito, api, NOW);
   assert.equal(fromWindow.closedWindowId, 4);
-  assert.deepEqual(state.windows.map((win) => win.id), [1]);
+  assert.deepEqual(
+    state.windows.map((win) => win.id),
+    [1],
+  );
 
   state.windows.push(incognito);
   state.tabs.push({ id: 4, windowId: 4, pinned: false, incognito: true });
@@ -140,7 +152,10 @@ test('closes a new incognito window even when the limiter is paused', async () =
   );
   assert.equal(fromTab.closedWindowId, 4);
   assert.equal(fromTab.closedTabId, null);
-  assert.deepEqual(state.windows.map((win) => win.id), [1]);
+  assert.deepEqual(
+    state.windows.map((win) => win.id),
+    [1],
+  );
 });
 
 test('a second incognito close after the window is gone is not an error', async () => {
@@ -198,4 +213,185 @@ test('default timestamp is on, and an existing pause is kept', async () => {
   assert.equal(await ensureDefaultTimestamp(numericString.api, NOW), NOW - PAUSE_MS);
   assert.equal(numericString.state.timestamp, String(NOW - PAUSE_MS));
   assert.equal(STORAGE_KEY, 'tabWindowLimiter');
+});
+
+test('a tab that is already gone, or a remove that still sees it, is reported honestly', async () => {
+  const missing = createMockChrome({
+    tabs: manyTabs(10),
+    windows: [normalWindow(1)],
+    timestamp: NOW - PAUSE_MS,
+  });
+  const raced = await handleTabCreated(tab(11, 1), missing.api, NOW);
+  assert.equal(raced.closedTabId, null);
+  assert.equal(raced.error, null);
+  assert.equal(missing.state.tabs.length, 10);
+
+  const stuck = createMockChrome({
+    tabs: manyTabs(11),
+    windows: [normalWindow(1)],
+    timestamp: NOW - PAUSE_MS,
+    failNextRemove: true,
+  });
+  const failed = await handleTabCreated(tab(11, 1), stuck.api, NOW);
+  assert.equal(failed.closedTabId, null);
+  assert.equal(failed.error.message, 'remove failed');
+  assert.equal(stuck.state.tabs.length, 11);
+});
+
+test('badge failures are returned and do not replace an earlier error', async () => {
+  const badge = createMockChrome({
+    tabs: manyTabs(11),
+    windows: [normalWindow(1)],
+    timestamp: NOW - PAUSE_MS,
+    badgeFails: true,
+  });
+  const badged = await handleTabCreated(tab(11, 1), badge.api, NOW);
+  assert.equal(badged.closedTabId, 11);
+  assert.equal(badged.error.message, 'badge failed');
+
+  const both = createMockChrome({
+    tabs: manyTabs(11),
+    windows: [normalWindow(1)],
+    storageFails: true,
+    badgeFails: true,
+  });
+  const stored = await handleTabCreated(tab(11, 1), both.api, NOW);
+  assert.equal(stored.closedTabId, null);
+  assert.equal(stored.error.message, 'storage unavailable');
+});
+
+test('uses a window that was not in the list yet, and ignores a tab with no window', async () => {
+  const hidden = { ...normalWindow(2), omitFromGetAll: true };
+  const created = tab(30, 2);
+  const listed = createMockChrome({
+    tabs: [...manyTabs(10), created],
+    windows: [normalWindow(1), hidden],
+    timestamp: NOW - PAUSE_MS,
+  });
+  const closed = await handleTabCreated(created, listed.api, NOW);
+  assert.equal(closed.closedTabId, 30);
+
+  const noWindow = createMockChrome({
+    tabs: [...manyTabs(12), { id: 4, pinned: false, incognito: false }],
+    windows: [normalWindow(1)],
+    timestamp: NOW - PAUSE_MS,
+  });
+  const left = await handleTabCreated(
+    { id: 4, pinned: false, incognito: false },
+    noWindow.api,
+    NOW,
+  );
+  assert.equal(left.closedTabId, null);
+  assert.equal(left.error, null);
+
+  const missingWindow = createMockChrome({
+    tabs: [...manyTabs(12), tab(8, 99)],
+    windows: [normalWindow(1)],
+    timestamp: NOW - PAUSE_MS,
+  });
+  const lookedUp = await handleTabCreated(tab(8, 99), missingWindow.api, NOW);
+  assert.equal(lookedUp.closedTabId, null);
+  assert.equal(lookedUp.error, null);
+});
+
+test('an incognito tab closes the window even when the window list missed it', async () => {
+  const hidden = { ...normalWindow(4, true), omitFromGetAll: true };
+  const created = { id: 4, windowId: 4, pinned: false, incognito: true };
+  const found = createMockChrome({
+    tabs: [tab(1, 1), created],
+    windows: [normalWindow(1), hidden],
+    timestamp: NOW,
+  });
+  const closed = await handleTabCreated(created, found.api, NOW);
+  assert.equal(closed.closedWindowId, 4);
+  assert.deepEqual(
+    found.state.windows.map((win) => win.id),
+    [1],
+  );
+
+  const absent = createMockChrome({
+    tabs: [tab(1, 1)],
+    windows: [normalWindow(1)],
+    timestamp: NOW,
+  });
+  const raced = await handleTabCreated(created, absent.api, NOW);
+  assert.equal(raced.closedWindowId, null);
+  assert.equal(raced.error, null);
+});
+
+test('tab and window events without an id only refresh the badge', async () => {
+  const { api, state } = createMockChrome({
+    tabs: manyTabs(12),
+    windows: [normalWindow(1)],
+    timestamp: NOW - PAUSE_MS,
+  });
+  const tabResult = await handleTabCreated({ windowId: 1 }, api, NOW);
+  assert.equal(tabResult.closedTabId, null);
+  assert.equal(tabResult.badge, '1');
+  assert.equal(state.tabs.length, 12);
+
+  const windowResult = await handleWindowCreated({ type: 'normal' }, api, NOW);
+  assert.equal(windowResult.closedWindowId, null);
+  assert.equal(windowResult.badge, '1');
+  assert.equal(state.windows.length, 1);
+});
+
+test('a window-list or storage failure does not close the new window or tab', async () => {
+  const created = normalWindow(2);
+  const storage = createMockChrome({
+    windows: [normalWindow(1), created],
+    tabs: [tab(1, 1), tab(2, 2)],
+    storageFails: true,
+  });
+  const stored = await handleWindowCreated(created, storage.api, NOW);
+  assert.equal(stored.closedWindowId, null);
+  assert.equal(stored.error.message, 'storage unavailable');
+  assert.equal(storage.state.windows.length, 2);
+
+  const windows = createMockChrome({
+    windows: [normalWindow(1), created],
+    tabs: manyTabs(12),
+    timestamp: NOW - PAUSE_MS,
+    windowsFail: true,
+  });
+  const listed = await handleWindowCreated(created, windows.api, NOW);
+  assert.equal(listed.closedWindowId, null);
+  assert.equal(listed.error.message, 'windows unavailable');
+
+  const tabFailure = await handleTabCreated(tab(12, 1), windows.api, NOW);
+  assert.equal(tabFailure.closedTabId, null);
+  assert.equal(tabFailure.error.message, 'windows unavailable');
+  assert.equal(windows.state.tabs.length, 12);
+});
+
+test('does not close a new normal window during the pause', async () => {
+  const created = normalWindow(2);
+  const { api, state } = createMockChrome({
+    windows: [normalWindow(1), created],
+    tabs: [tab(1, 1), tab(2, 2)],
+    timestamp: NOW,
+  });
+  const result = await handleWindowCreated(created, api, NOW);
+  assert.equal(result.active, false);
+  assert.equal(result.closedWindowId, null);
+  assert.equal(state.windows.length, 2);
+});
+
+test('removal only refreshes the badge', async () => {
+  const { api, state } = createMockChrome({
+    windows: [normalWindow(1), normalWindow(2)],
+    tabs: [tab(1, 1)],
+  });
+  state.windows.pop();
+  const refreshed = await refreshAfterRemoval(api);
+  assert.equal(refreshed.closedTabId, null);
+  assert.equal(refreshed.closedWindowId, null);
+  assert.equal(refreshed.badge, '1');
+
+  const failing = createMockChrome({
+    windows: [normalWindow(1)],
+    badgeFails: true,
+  });
+  const result = await refreshAfterRemoval(failing.api);
+  assert.equal(result.error.message, 'badge failed');
 });

@@ -8,8 +8,39 @@
     "node": ">=22"
   },
   "scripts": {
-    "build": "node scripts/build.js",
-    "lint": "node scripts/lint.js",
-    "test": "node --test"
+    "check": "npm run lint && npm run test:coverage && npm run size",
+    "lint": "npm run lint:format && npm run lint:js && npm run lint:types && npm run lint:html && npm run lint:css && npm run lint:links && npm run lint:spell && npm run lint:actions",
+    "lint:format": "prettier --check .",
+    "lint:js": "eslint .",
+    "lint:types": "tsc --noEmit",
+    "lint:html": "html-validate src/popup.html",
+    "lint:css": "stylelint --allow-empty-input \"src/**/*.{html,css,scss}\"",
+    "lint:links": "node scripts/check-links.js",
+    "lint:spell": "node scripts/run-tool.js codespell --skip=./.git,./node_modules,./.tools,./package-lock.json",
+    "lint:actions": "node scripts/run-tool.js actionlint",
+    "test": "node --test test/*.test.js",
+    "test:coverage": "node --test --experimental-test-coverage --test-coverage-include='src/**/*.js' --test-coverage-lines=100 --test-coverage-branches=98 --test-coverage-functions=100 test/*.test.js",
+    "size": "node scripts/size-budget.js",
+    "postinstall": "node scripts/install-check-tools.js",
+    "prepare": "node scripts/install-hooks.js"
+  },
+  "overrides": {
+    "glob": "14.0.6",
+    "minimatch": "11.0.9"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/node": "26.6.6",
+    "eslint": "10.15.0",
+    "eslint-config-prettier": "10.1.8",
+    "globals": "17.14.0",
+    "html-validate": "11.21.1",
+    "lefthook": "2.2.2",
+    "linkinator": "8.1.0",
+    "postcss-html": "2.0.1",
+    "prettier": "3.10.1",
+    "stylelint": "18.1.0",
+    "stylelint-config-standard": "41.1.0",
+    "typescript": "7.0.2"
   }
 }
