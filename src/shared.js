@@ -91,9 +91,7 @@ export function countLimitedTabs(tabs, windows, createdTab, createdWindow) {
     }
   }
 
-  const createdWin = createdTab
-    ? windowsById.get(createdTab.windowId) ?? createdWindow
-    : null;
+  const createdWin = createdTab ? (windowsById.get(createdTab.windowId) ?? createdWindow) : null;
   if (!included && tabCountsTowardLimit(createdTab, createdWin)) {
     count += 1;
   }
@@ -105,10 +103,7 @@ export function shouldCloseIncognito(win) {
 }
 
 export function shouldCloseCreatedWindow(win, windows, active) {
-  if (!win || typeof win.id !== 'number' || win.incognito || !isLimitedWindow(win)) {
-    return false;
-  }
-  if (!active) {
+  if (!active || !isLimitedWindow(win) || typeof win.id !== 'number') {
     return false;
   }
   const count = countLimitedWindows(windows, win);
@@ -147,9 +142,10 @@ export function limiterStatusCopy(active) {
 }
 
 export function limitsDescription() {
-  const windowRule = MAX_WINDOWS === 1
-    ? 'opening another normal window closes that new window'
-    : `opening a normal window past ${MAX_WINDOWS} closes that new window`;
+  const windowRule =
+    MAX_WINDOWS === 1
+      ? 'opening another normal window closes that new window'
+      : `opening a normal window past ${MAX_WINDOWS} closes that new window`;
   return `While the limiter is on, opening an unpinned tab past ${MAX_TABS} closes that new tab, and ${windowRule}. Incognito windows close immediately. Pinned tabs, popups, and DevTools stay open. Pause lasts ${PAUSE_MS / 1000} seconds, then the limiter turns back on. The All windows count matches the toolbar badge.`;
 }
 

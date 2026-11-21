@@ -1,9 +1,8 @@
 import {
   ensureDefaultTimestamp,
   handleTabCreated,
-  handleTabRemoved,
   handleWindowCreated,
-  handleWindowRemoved,
+  refreshAfterRemoval,
   updateBadge,
 } from './enforcement.js';
 import { createSerializer } from './shared.js';
@@ -16,10 +15,15 @@ function guard(task) {
   });
 }
 
-function report(result) {
-  if (result?.error) {
-    console.error('Tab window limiter failed', result.error);
-  }
+function listen(event, task) {
+  event.addListener((payload) => {
+    guard(async () => {
+      const result = await task(payload);
+      if (result?.error) {
+        console.error('Tab window limiter failed', result.error);
+      }
+    });
+  });
 }
 
 chrome.runtime.onInstalled.addListener(() => {
@@ -33,26 +37,7 @@ chrome.runtime.onStartup.addListener(() => {
   guard(() => updateBadge());
 });
 
-chrome.tabs.onCreated.addListener((tab) => {
-  guard(async () => {
-    report(await handleTabCreated(tab));
-  });
-});
-
-chrome.tabs.onRemoved.addListener(() => {
-  guard(async () => {
-    report(await handleTabRemoved());
-  });
-});
-
-chrome.windows.onCreated.addListener((win) => {
-  guard(async () => {
-    report(await handleWindowCreated(win));
-  });
-});
-
-chrome.windows.onRemoved.addListener(() => {
-  guard(async () => {
-    report(await handleWindowRemoved());
-  });
-});
+listen(chrome.tabs.onCreated, handleTabCreated);
+listen(chrome.tabs.onRemoved, () => refreshAfterRemoval());
+listen(chrome.windows.onCreated, handleWindowCreated);
+listen(chrome.windows.onRemoved, () => refreshAfterRemoval());

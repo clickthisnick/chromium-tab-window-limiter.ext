@@ -41,19 +41,18 @@ Edit the constants at the top of `src/shared.js`:
 - `PAUSE_MS` (default `10000`)
 - `DISABLE_INCOGNITO` (default `true`)
 
-Reload the unpacked extension after saving. Notes for automated agents are in `llms.txt` at the repository root.
+Reload the unpacked extension after saving. Behavior notes are in `llms.txt`. Agent rules are in `AGENTS.md`.
 
 ## Tests
 
-Requires Node.js 22 or newer. No packages need to be installed.
+Requires Node.js 22 or newer.
 
 ```bash
-npm test
-npm run lint
-npm run build
+npm install
+npm run check
 ```
 
-GitHub Actions runs those three commands on push and pull request.
+`npm run check` is what GitHub Actions runs on push and pull request. The extension itself has no build step and no runtime dependencies.
 
 ## Make better
 

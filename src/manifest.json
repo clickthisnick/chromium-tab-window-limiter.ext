@@ -4,10 +4,7 @@
   "version": "0.0.4",
   "manifest_version": 3,
   "incognito": "spanning",
-  "permissions": [
-    "tabs",
-    "storage"
-  ],
+  "permissions": ["tabs", "storage"],
   "background": {
     "service_worker": "background.js",
     "type": "module"

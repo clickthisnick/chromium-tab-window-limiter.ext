@@ -97,10 +97,7 @@ test('includes a created tab or window that is not in the query yet', () => {
   assert.equal(countLimitedTabs(tabs, windows, createdTab, windows[0]), 11);
   assert.equal(shouldCloseCreatedTab(createdTab, windows[0], tabs, windows, true), true);
   assert.equal(shouldCloseCreatedTab(createdTab, windows[0], tabs, windows, false), false);
-  assert.equal(
-    shouldCloseCreatedWindow(createdWindow, windows, true),
-    true,
-  );
+  assert.equal(shouldCloseCreatedWindow(createdWindow, windows, true), true);
 });
 
 test('does not close pinned tabs, popups, devtools, or the last normal window', () => {
@@ -116,7 +113,13 @@ test('does not close pinned tabs, popups, devtools, or the last normal window', 
 
   assert.equal(shouldCloseCreatedTab(pinned, normal, tabs, [normal], true), false);
   assert.equal(
-    shouldCloseCreatedTab({ id: 20, windowId: 2, pinned: false }, popup, tabs, [normal, popup], true),
+    shouldCloseCreatedTab(
+      { id: 20, windowId: 2, pinned: false },
+      popup,
+      tabs,
+      [normal, popup],
+      true,
+    ),
     false,
   );
   assert.equal(shouldCloseCreatedWindow(popup, [normal, popup], true), false);
@@ -129,7 +132,10 @@ test('incognito windows close even while paused', () => {
   const incognito = { id: 5, type: 'normal', incognito: true };
   assert.equal(shouldCloseIncognito(incognito), true);
   assert.equal(shouldCloseIncognito({ id: 1, type: 'normal', incognito: false }), false);
-  assert.equal(shouldCloseCreatedWindow(incognito, [incognito, { id: 1, type: 'normal' }], false), false);
+  assert.equal(
+    shouldCloseCreatedWindow(incognito, [incognito, { id: 1, type: 'normal' }], false),
+    false,
+  );
 });
 
 test('badge text stays within four characters', () => {
@@ -150,6 +156,14 @@ test('popup copy names the action and the pause', () => {
   assert.match(limitsDescription(), /past 10/);
   assert.match(limitsDescription(), /another normal window/);
   assert.match(limitsDescription(), /Pinned tabs/);
+});
+
+test('counts a created tab whose window arrives with the event', () => {
+  const createdWindow = { id: 9, type: 'normal', incognito: false };
+  const createdTab = { id: 11, windowId: 9, pinned: false };
+  assert.equal(countLimitedTabs([], [], createdTab, createdWindow), 1);
+  assert.equal(countLimitedWindows([], createdWindow), 1);
+  assert.equal(shouldCloseCreatedTab(createdTab, createdWindow, [], [], true), false);
 });
 
 test('serializer runs one task at a time and continues after failure', async () => {
